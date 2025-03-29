@@ -1,86 +1,88 @@
-import pandas as pd
-import os
+import csv
 import spacy
-from spacy import util
+from collections import defaultdict
+from nltk.corpus import wordnet
 
-# Verifică și încarcă modelul linguistic
-try:
-    nlp = spacy.load("en_core_web_md")
-except OSError:
-    print("Vă rugăm să instalați modelul român pentru spaCy:")
-    print("python -m spacy download ro_core_news_lg")
-    exit()
+# Încărcăm modelul de NLP pentru embeddings (modelul mic de engleză, local)
+nlp = spacy.load("en_core_web_md")  # Folosim modelul mic pentru limba engleză
 
-def load_battle_rules():
-    if os.path.exists("battle_rules.csv"):
-        df = pd.read_csv("battle_rules.csv", header=None, names=['winner', 'loser'])
-        df['loser_lower'] = df['loser'].str.lower()
-        return df
-    return pd.DataFrame(columns=['winner', 'loser', 'loser_lower'])
+# Încărcăm datele din fișierele CSV
+def load_data():
+    words = {}
+    with open('cuvinte.csv', 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            words[row['nume'].lower()] = int(row['cost'])  # Transformăm cuvintele în lowercase
 
-def load_prices():
-    if os.path.exists("cuvinte.csv"):
-        df = pd.read_csv("cuvinte.csv", header=None, names=['word', 'price'])
-        df['word_lower'] = df['word'].str.lower()
-        return df
-    return pd.DataFrame(columns=['word', 'price', 'word_lower'])
+    battle_rules = defaultdict(list)
+    with open('battle_rules.csv', 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            battle_rules[row['loser'].lower()].append(row['winner'].lower())  # Transformăm cuvintele în lowercase
+    
+    return words, battle_rules
 
-def get_similar_words(target, allowed_words):
-    target_doc = nlp(target.lower())
+# Funcție pentru a găsi sinonimele unui cuvânt folosind WordNet
+def get_synonyms(word):
+    synonyms = set()
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            synonyms.add(lemma.name().lower())  # Transformăm sinonimele în lowercase
+    return synonyms
+
+# Funcție pentru a calcula similaritățile între cuvinte
+def find_similar_losers(input_word, battle_rules, threshold=0.5):
+    input_word = input_word.lower()  # Transformăm cuvântul de intrare în lowercase
+    # Extragem toți "loser"-ii din reguli
+    all_losers = list(battle_rules.keys())
+    
+    # Calculăm similaritatea dintre input_word și fiecare "loser"
+    input_doc = nlp(input_word)
     similarities = []
+    for loser in all_losers:
+        loser_doc = nlp(loser)
+        sim = input_doc.similarity(loser_doc)
+        if sim >= threshold:
+            similarities.append((loser, sim))
     
-    for word in allowed_words:
-        word_doc = nlp(word.lower())
-        similarity = target_doc.similarity(word_doc)
-        similarities.append((word, similarity))
-    
-    return sorted(similarities, key=lambda x: x[1], reverse=True)
+    # Sortăm descrescător după similaritate
+    similarities.sort(key=lambda x: x[1], reverse=True)
+    return [loser for loser, sim in similarities]
 
-def find_all_winners(target, battles, prices):
-    target_lower = target.lower()
-    
-    # Caută în regulile directe
-    direct_winners = battles[battles['loser_lower'] == target_lower]['winner'].tolist()
-    
-    # Dacă nu găsește, caută similare
-    if not direct_winners:
-        allowed_words = prices['word'].tolist()
-        similar_words = get_similar_words(target, allowed_words)
+# Funcție pentru a găsi cel mai ieftin "winner" posibil
+def find_cheapest_winner(input_word, words, battle_rules):
+    input_word = input_word.lower()  # Transformăm cuvântul de intrare în lowercase
+    # Caz 1: Cuvântul este direct în reguli
+    if input_word in battle_rules:
+        possible_winners = battle_rules[input_word]
+    else:
+        # Caz 2: Căutăm sinonime și similarități cu alți "loser"-i
+        similar_losers = find_similar_losers(input_word, battle_rules)
+        possible_winners = []
         
-        for word, _ in similar_words:
-            similar_lower = word.lower()
-            winners = battles[battles['loser_lower'] == similar_lower]['winner'].tolist()
-            if winners:
-                direct_winners = winners
-                break
-    
-    # Verifică prețurile
-    valid_winners = prices[prices['word'].isin(direct_winners)]
-    return valid_winners.sort_values(by='price')
-
-def main():
-    battles = load_battle_rules()
-    prices = load_prices()
-    
-    if prices.empty:
-        print("Fișierul cuvinte.csv nu a fost găsit sau este gol")
-        return
-    
-    while True:
-        target = input("\nIntrodu cuvântul țintă (sau 'exit' pentru a închide): ").strip()
-        if target.lower() == 'exit':
-            break
-            
-        results = find_all_winners(target, battles, prices)
+        # Adăugăm sinonimele cuvintelor la lista de posibili câștigători
+        synonyms = get_synonyms(input_word)
+        possible_winners.extend(synonyms)
         
-        if not results.empty:
-            print("\nOpțiuni disponibile ordonate după preț:")
-            for idx, row in results.iterrows():
-                print(f"{row['word']} - {row['price']} RON")
-            
-            print(f"\nCea mai bună opțiune: {results.iloc[0]['word']} ({results.iloc[0]['price']} RON)")
-        else:
-            print(f"\nNu există înregistrări pentru cuvinte care să bată '{target}'")
+        # Extindem cuvintele similare care pot fi câștigătoare
+        for loser in similar_losers:
+            possible_winners.extend(battle_rules.get(loser, []))
+    
+    # Filtrăm cuvinte valide și găsim cel mai ieftin
+    valid_winners = [(word, cost) for word, cost in words.items() if word in possible_winners]
+    
+    # Dacă nu există câștigători, adăugăm o garanție ca cel puțin un câștigător să fie valid
+    if not valid_winners:
+        return list(words.keys())[0]  # Alegem primul câștigător disponibil, pentru a evita lipsa unui câștigător valid
+    
+    return min(valid_winners, key=lambda x: x[1])[0]
 
-if __name__ == "__main__":
-    main()
+# Exemplu de utilizare
+words, battle_rules = load_data()
+input_word = input("Introdu cuvântul de învins: ")
+
+# Căutăm cel mai ieftin câștigător
+cheapest_winner = find_cheapest_winner(input_word, words, battle_rules)
+
+if cheapest_winner:
+    print(f"Cel mai ieftin câștigător pentru '{input_word}' este '{cheapest_winner}' (cost: {words[cheapest_winner]}).")

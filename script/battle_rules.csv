@@ -1,4 +1,4 @@
-Word,Beats
+winner,loser
 Wind,Fire
 Wind,Rock
 Wind,Tsunami
@@ -6,6 +6,9 @@ Wind,Volcano
 Wind,Nuclear Bomb
 Water,Fire
 Water,Earthquake
+Tsunami,Tank
+Nuclear Bomb,Tank
+Antimatter,Tank
 Water,Tsunami
 Water,Volcano
 Water,Sandstorm
@@ -657,3 +660,34 @@ Water,flame
 Sandstorm,vision
 Enlightenment,sensor
 Time,anger
+Tsunami,torch
+Time,mage
+Water,ash
+Water,earth
+Shield,virus
+Explosion,calm
+Human Spirit,phantom
+Time,illusion
+Time,stone
+Storm,ember
+Wind,silence
+Human Spirit,control
+Time,rage
+Time,shame
+Time,reaper
+Time,form
+Flame,ignorance
+Enlightenment,scar
+Gun,king
+Shield,charge
+Laser,mirror
+Water,ember
+Enlightenment,demon
+Enlightenment,dream
+Water,torch
+Time,quake
+Shield,fang
+Vaccine,wave
+Flame,snow
+Flame,snow
+Supernova,shield

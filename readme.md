@@ -1,0 +1,1 @@
+Pentru solutie se va rula index.py

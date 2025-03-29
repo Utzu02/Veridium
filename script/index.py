@@ -85,7 +85,7 @@ def find_cheapest_winner(input_word, words, battle_rules):
 # Exemplu de utilizare
 words, battle_rules = load_data()
 
-host = ""
+host = "http://172.18.4.158:8000"
 post_url = f"{host}/submit-word"
 get_url = f"{host}/get-word"
 status_url = f"{host}/status"
@@ -113,8 +113,11 @@ def play_game(player_id):
         if round_id > 1:
             status = requests.get(status_url)
             print(status.json())
+        
+        print(round_id)
 
         choosen_word = what_beats(sys_word)
         data = {"player_id": "a7qVBZ0UcC", "word_id": choosen_word, "round_id": round_id}
         response = requests.post(post_url, json=data)
         print(response.json())
+play_game("a7qVBZ0UcC")

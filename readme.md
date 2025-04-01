@@ -17,15 +17,16 @@
 ```bash
 # 1. Instalare spaCy + model românesc
 pip install spacy
-python -m spacy download ro_core_news_md
+python -m spacy download en_core_web_md
 
-# 2. Clonează repository-ul (opțional)
-git clone https://github.com/username/words-of-power.git
-cd words-of-power
+# 2. Pentru a folosi funcția de sinonime, trebuie să descarci datele necesare din Wordnet
+import nltk
+nltk.download('wordnet')
+nltk.download('omw-1.4')r
 
 # 📂 Rulează în folderul proiectului:
 python raspuns.py (main.py este scriptul care ruleaza doar in timpul concursului)
 
 # 🧪 Exemplu input:
-# > Introdu cuvântul de învins: câine
-# > Câștigător garantat: 'catel' (cost: 5)
+# > Introdu cuvântul de învins: dog
+# > Câștigător garantat: 'gun' (cost: 5)

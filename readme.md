@@ -4,7 +4,6 @@
 
 **Sistem AI care determină cel mai eficient/ieftin cuvânt pentru a învinge un inamic dat**, folosind reguli custom și NLP pentru cuvinte necunoscute!
 
-![Battle System Demo](https://via.placeholder.com/800x400.png?text=Run+main.py+to+see+magic!🪄)
 
 ## 🚀 Cum funcționează?
 | Componentă              | Descriere                                                                 |
